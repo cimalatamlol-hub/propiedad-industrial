@@ -1,0 +1,237 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0"><title>Mapa de Propiedad Industrial</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Lienzo con zoom tipo presentación: el mapa vive en un plano y la cámara viaja de concepto en concepto */
+:root{
+  --bg:#e9eeec; --grid:#d6dedb; --surface:#ffffff; --ink:#14221e; --muted:#51625c;
+  --line:#9fb0aa; --core:#14221e; --core-ink:#f4f7f5;
+  --c-nc:#0f7a6c; --c-sd:#8a3a78; --c-der:#2f5d8a; --c-app:#b8760a;
+  --chip:#f4f7f5; --panel:#ffffff; --shadow:0 10px 30px rgba(20,34,30,.12);
+  --f-display:"Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1715; --grid:#1b2623; --surface:#16211e; --ink:#e4ece9; --muted:#9db0aa;
+  --line:#47605a; --core:#e4ece9; --core-ink:#0f1715;
+  --c-nc:#3cc2ad; --c-sd:#d67bc3; --c-der:#79a8d8; --c-app:#e8b04a;
+  --chip:#1d2a27; --panel:#16211e; --shadow:0 10px 30px rgba(0,0,0,.45); color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f1715; --grid:#1b2623; --surface:#16211e; --ink:#e4ece9; --muted:#9db0aa;
+  --line:#47605a; --core:#e4ece9; --core-ink:#0f1715;
+  --c-nc:#3cc2ad; --c-sd:#d67bc3; --c-der:#79a8d8; --c-app:#e8b04a;
+  --chip:#1d2a27; --panel:#16211e; --shadow:0 10px 30px rgba(0,0,0,.45); color-scheme:dark }
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--grid);background:var(--bg);position:relative;z-index:5}
+.brand{min-width:0}
+.brand h1{font-family:var(--f-display);font-weight:800;font-size:clamp(18px,2.4vw,24px);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{font:inherit;font-weight:700;font-size:14px;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:8px 14px;cursor:pointer}
+button:hover{border-color:var(--ink)}
+button:focus-visible,.node:focus-visible{outline:3px solid var(--c-app);outline-offset:3px}
+button.primary{background:var(--core);color:var(--core-ink);border-color:var(--core)}
+.count{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;min-width:52px;text-align:center}
+#stage{position:relative;flex:1;overflow:hidden;cursor:grab;touch-action:none;
+  background-image:radial-gradient(var(--grid) 1.2px, transparent 1.2px);background-size:26px 26px}
+#stage.drag{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0;transition:transform .9s cubic-bezier(.65,0,.25,1)}
+#world.nodrag{transition:none}
+svg.edges{position:absolute;left:-2000px;top:-2000px;width:4000px;height:4000px;overflow:visible;pointer-events:none}
+svg.edges line{stroke:var(--line);stroke-width:2.5;fill:none}
+.elabel{position:absolute;transform:translate(-50%,-50%);font-style:italic;font-size:13px;color:var(--muted);background:var(--bg);padding:2px 8px;border-radius:6px;white-space:nowrap;pointer-events:none}
+.node{position:absolute;transform:translate(-50%,-50%);width:250px;background:var(--surface);border:2px solid var(--bc,var(--line));border-radius:18px;padding:14px 16px;box-shadow:var(--shadow);cursor:pointer;text-align:left;transition:box-shadow .3s, transform .3s}
+.node .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--bc);font-weight:700}
+.node h2{font-family:var(--f-display);font-weight:700;font-size:21px;line-height:1.1;margin:4px 0 6px;text-wrap:balance}
+.node p{margin:0;font-size:13.5px;line-height:1.4;color:var(--muted)}
+.node.l1{width:280px;border-width:3px}
+.node.l1 h2{font-size:24px}
+.node.l0{width:330px;background:var(--core);border-color:var(--core);text-align:center}
+.node.l0 h2{font-size:32px;color:var(--core-ink)}
+.node.l0 p,.node.l0 .k{color:var(--core-ink);opacity:.85}
+.node.on{box-shadow:0 0 0 5px color-mix(in srgb,var(--bc,var(--c-app)) 35%,transparent),var(--shadow)}
+.node.l0.on{box-shadow:0 0 0 6px color-mix(in srgb,var(--c-app) 55%,transparent),var(--shadow)}
+#panel{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:16px;bottom:16px;width:380px;max-width:calc(100% - 32px);background:var(--panel);border:1.5px solid var(--line);border-radius:20px;box-shadow:var(--shadow);overflow:auto;padding:20px 22px;z-index:4}
+#panel .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--bc)}
+#panel h3{font-family:var(--f-display);font-weight:800;font-size:28px;line-height:1.05;margin:4px 0 14px;text-wrap:balance}
+#panel h4{font-size:12px;letter-spacing:.07em;text-transform:uppercase;margin:16px 0 6px;color:var(--muted)}
+#panel p,#panel li{line-height:1.5;margin:0}
+#panel ul{margin:0;padding-left:18px;display:grid;gap:6px}
+#panel table{width:100%;border-collapse:collapse;font-size:14px;margin-top:4px}
+#panel td{padding:6px 4px;border-bottom:1px solid var(--grid);vertical-align:top}
+#panel td:last-child{font-variant-numeric:tabular-nums;color:var(--muted)}
+.close{position:absolute;top:12px;right:12px;padding:4px 10px;font-size:13px}
+.legend{position:absolute;left:max(16px,env(safe-area-inset-left,0px));bottom:16px;display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted);background:color-mix(in srgb,var(--bg) 85%,transparent);padding:6px 10px;border-radius:10px;z-index:3;max-width:calc(100% - 32px)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:4px;background:var(--c);display:inline-block}
+@media (max-width:760px){
+  #panel{top:auto;left:max(16px,env(safe-area-inset-left,0px));width:auto;height:46%;bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+  .legend{display:none}
+}
+@media (prefers-reduced-motion:reduce){#world{transition:none}}
+</style>
+
+<header>
+  <div class="brand">
+    <h1>Propiedad Industrial</h1>
+    <p>Mapa conceptual · Jessica Alejandra Loaiza T. · Gestión de la Propiedad Intelectual</p>
+  </div>
+  <div class="ctrl">
+    <button id="ov" type="button">Vista general</button>
+    <button id="prev" type="button" aria-label="Concepto anterior">← Anterior</button>
+    <span class="count" id="count" aria-live="polite">Inicio</span>
+    <button id="next" class="primary" type="button" aria-label="Concepto siguiente">Siguiente →</button>
+  </div>
+</header>
+<div id="stage">
+  <div id="world"></div>
+  <div class="legend" aria-hidden="true">
+    <span style="--c:var(--c-nc)"><i></i>Nuevas creaciones</span>
+    <span style="--c:var(--c-sd)"><i></i>Signos distintivos</span>
+    <span style="--c:var(--c-der)"><i></i>Derechos, registro y vigencia</span>
+    <span style="--c:var(--c-app)"><i></i>Aplicación cultural</span>
+  </div>
+  <aside id="panel" hidden aria-live="polite"></aside>
+</div>
+
+<script>
+const D = {"nodes":[
+{"id":"pi","x":0,"y":0,"lvl":0,"k":"Concepto central","t":"Propiedad Industrial","s":"Protege las creaciones con aplicación industrial y los signos que identifican en el mercado.",
+ "que":"Rama de la propiedad intelectual que protege las creaciones con aplicación en la industria y el comercio, y los signos que identifican productos, servicios y empresas.",
+ "sirve":"Da a su titular un derecho exclusivo y temporal para explotar lo que creó o lo que lo identifica, y evita copias y confusiones en el mercado.",
+ "clave":["Importancia: incentiva la innovación, da seguridad jurídica, convierte ideas en activos que se pueden licenciar o vender y protege al consumidor de engaños.","Norma: Decisión 486 de 2000 de la Comunidad Andina.","Autoridad en Colombia: Superintendencia de Industria y Comercio (SIC)."]},
+{"id":"nc","x":-640,"y":-40,"lvl":1,"k":"Categoría","t":"Nuevas creaciones","s":"Soluciones técnicas y apariencias nuevas con aplicación industrial.",
+ "que":"Creaciones del intelecto con aplicación industrial: soluciones técnicas nuevas y apariencias nuevas de productos.",
+ "sirve":"Protegen la innovación para que quien invierte en crear pueda recuperar su inversión y obtener beneficios.",
+ "clave":["Exigen novedad.","Cuando termina su protección, pasan al dominio público y cualquiera puede usarlas."]},
+{"id":"pat","x":-1120,"y":-440,"lvl":2,"k":"Nueva creación","t":"Patente de invención","s":"Protege invenciones nuevas, con nivel inventivo y aplicación industrial. 20 años.",
+ "que":"Derecho sobre una invención de producto o de procedimiento, en cualquier campo de la tecnología.",
+ "sirve":"Permite al titular impedir que otros fabriquen, vendan, usen o importen su invención sin permiso, a cambio de dar a conocer la invención a la sociedad.",
+ "clave":["Requisitos: novedad, nivel inventivo y aplicación industrial (Decisión 486, art. 14).","Duración: 20 años desde la solicitud (art. 50).","Derechos del titular: art. 52."]},
+{"id":"mu","x":-1230,"y":0,"lvl":2,"k":"Nueva creación","t":"Modelo de utilidad","s":"Protege mejoras de forma o configuración de un objeto. 10 años.",
+ "que":"Nueva forma, configuración o disposición de un objeto que mejora su funcionamiento, uso o fabricación, o le da una utilidad técnica nueva (art. 81).",
+ "sirve":"Protege mejoras prácticas, las llamadas pequeñas invenciones.",
+ "clave":["Requisitos: novedad y aplicación industrial; no exige nivel inventivo.","Duración: 10 años desde la solicitud (art. 84)."]},
+{"id":"di","x":-1120,"y":440,"lvl":2,"k":"Nueva creación","t":"Diseño industrial","s":"Protege la apariencia de un producto sin cambiar su función. 10 años.",
+ "que":"Apariencia particular de un producto: sus líneas, colores, forma, textura o material, sin cambiar su función (art. 113).",
+ "sirve":"Evita que otros copien la estética de un producto (art. 129).",
+ "clave":["Requisito: ser nuevo.","Duración: 10 años desde la solicitud (art. 128).","Ejemplo cultural: la forma propia de una pieza artesanal o de un objeto de diseño."]},
+{"id":"sd","x":640,"y":-40,"lvl":1,"k":"Categoría","t":"Signos distintivos","s":"Identifican y diferencian productos, servicios, empresas y orígenes.",
+ "que":"Signos que identifican y diferencian en el mercado productos, servicios, empresas o lugares de origen.",
+ "sirve":"Permiten que el público reconozca quién está detrás de lo que compra, no se confunda y confíe en una reputación.",
+ "clave":["Incluyen marcas, nombres comerciales, lemas comerciales y denominaciones de origen."]},
+{"id":"marca","x":1120,"y":-470,"lvl":2,"k":"Signo distintivo","t":"Marca","s":"Distingue productos o servicios. Se obtiene con el registro. 10 años renovables.",
+ "que":"Cualquier signo apto para distinguir productos o servicios en el mercado (art. 134).",
+ "sirve":"Su función distintiva diferencia una oferta de la competencia e indica su origen empresarial. Sirve para posicionar, fidelizar clientes, licenciar o franquiciar.",
+ "clave":["Tipos por su forma: nominativa, figurativa, mixta, tridimensional y sonora.","Tipos especiales: colectiva (la usan productores asociados) y de certificación (garantiza calidad u origen; su titular no la usa en sus propios productos).","El derecho se adquiere con el registro (art. 154); dura 10 años renovables (art. 152)."]},
+{"id":"nom","x":1260,"y":-150,"lvl":2,"k":"Signo distintivo","t":"Nombre comercial","s":"Identifica la empresa o el establecimiento. Se protege por el uso.",
+ "que":"Signo que identifica una actividad económica, una empresa o un establecimiento (art. 190).",
+ "sirve":"Permite que el público reconozca el negocio, aparte de los productos que vende.",
+ "clave":["El derecho se adquiere con su primer uso en el comercio y termina cuando se deja de usar (art. 191)."]},
+{"id":"lema","x":1260,"y":170,"lvl":2,"k":"Signo distintivo","t":"Lema comercial","s":"Frase que acompaña una marca y refuerza su recordación.",
+ "que":"Palabra, frase o leyenda que se usa como complemento de una marca: el eslogan.",
+ "sirve":"Refuerza la recordación de la marca en la publicidad.",
+ "clave":["Debe asociarse a una marca registrada o en trámite y sigue la suerte de esa marca."]},
+{"id":"do","x":1120,"y":490,"lvl":2,"k":"Signo distintivo","t":"Denominación de origen","s":"Identifica productos cuyas cualidades vienen de su territorio.",
+ "que":"Indicación geográfica que identifica un producto cuyas cualidades o reputación se deben a su lugar de origen, con sus factores naturales y humanos.",
+ "sirve":"Protege el saber y la reputación colectiva de un territorio frente a imitaciones.",
+ "clave":["En Colombia la declara la SIC y autoriza su uso a los productores de la zona.","Ejemplos: Café de Colombia, Tejeduría wayúu, Cerámica artesanal de Ráquira, Sombrero aguadeño."]},
+{"id":"tit","x":-420,"y":560,"lvl":1,"k":"Derechos","t":"Titularidad y derechos","s":"El titular usa en exclusiva, impide copias, licencia y cede.",
+ "que":"El titular es la persona natural o jurídica a quien la autoridad le concede el derecho.",
+ "sirve":"Le permite controlar quién usa su creación o su signo y obtener beneficios económicos.",
+ "clave":["Facultades: usar y explotar en exclusiva; impedir que terceros copien o usen signos que causen confusión (arts. 52 y 155); dar licencias a cambio de regalías; ceder o vender el derecho; acudir a las autoridades si lo infringen.","Deberes: usar la marca, explotar la patente, pagar las tasas y renovar a tiempo."]},
+{"id":"reg","x":420,"y":560,"lvl":1,"k":"Protección","t":"Protección y registro","s":"La SIC concede los derechos; sin registro no hay exclusividad.",
+ "que":"Trámite ante la autoridad que convierte una creación o un signo en un derecho que se puede hacer valer frente a otros.",
+ "sirve":"Da prueba, seguridad jurídica y la posibilidad de defenderse. Sin registro no hay derecho exclusivo sobre marcas, patentes ni diseños; el nombre comercial es la excepción, porque se protege por el uso.",
+ "clave":["Autoridad: Superintendencia de Industria y Comercio (SIC). El derecho de autor, otra rama de la propiedad intelectual, lo maneja la Dirección Nacional de Derecho de Autor (DNDA).","Registro de marca: búsqueda de antecedentes, clase de Niza, solicitud, publicación en la Gaceta, 30 días hábiles para oposiciones, examen de fondo y certificado."]},
+{"id":"vig","x":0,"y":930,"lvl":1,"k":"Tiempo y territorio","t":"Vigencia y alcance","s":"Cada derecho dura un tiempo y vale solo en el país que lo concede.",
+ "que":"La vigencia es el tiempo que dura cada derecho; el alcance es el territorio donde produce efectos.",
+ "sirve":"Define hasta cuándo y dónde el titular puede impedir el uso de su creación o su signo.",
+ "tabla":[["Patente de invención","20 años, no renovable"],["Modelo de utilidad","10 años"],["Diseño industrial","10 años"],["Marca","10 años, renovable"],["Nombre comercial","Mientras se use"],["Denominación de origen","Mientras se mantengan sus condiciones"]],
+ "clave":["Territorialidad: el derecho solo vale en el país que lo concede. Para otros países se usan el Protocolo de Madrid (marcas; Colombia lo aprobó con la Ley 1455 de 2011) y el PCT (patentes).","Al vencer, patentes y diseños pasan al dominio público."]},
+{"id":"emp","x":0,"y":-640,"lvl":1,"k":"Aplicación","t":"Emprendimientos y proyectos culturales","s":"Protege la identidad, los oficios y las creaciones de iniciativas culturales.",
+ "que":"Uso de la propiedad industrial en iniciativas empresariales, creativas y culturales.",
+ "sirve":"Protege la identidad de un proyecto, evita que otros se apropien de su nombre o de su trabajo y convierte lo creado en activos que generan ingresos y confianza ante aliados y financiadores.",
+ "clave":["Marca: el nombre de un evento o de un proyecto, como Portal Abierto o Arte Circular.","Marca colectiva: asociaciones de artesanas que comparten un sello.","Denominación de origen: oficios tradicionales de un territorio.","Diseño industrial y modelo de utilidad: piezas artesanales con forma propia o mejoras técnicas, como piezas hechas en impresión 3D.","Diferencia clave: los murales, la música y los textos se protegen por derecho de autor, no por propiedad industrial."]}
+],
+"edges":[["pi","nc","se divide en"],["pi","sd","se divide en"],["nc","pat","protegen invenciones con la"],["nc","mu","protegen mejoras con el"],["nc","di","protegen la apariencia con el"],["sd","marca","distinguen productos con la"],["sd","nom","identifican la empresa con el"],["sd","lema","refuerzan la marca con el"],["sd","do","señalan el origen con la"],["pi","tit","otorga derechos al"],["pi","reg","se obtiene mediante"],["tit","vig","ejerce sus derechos según la"],["reg","vig","define la"],["pi","emp","se aplica en"]],
+"path":["pi","nc","pat","mu","di","sd","marca","nom","lema","do","tit","reg","vig","emp"]}
+;
+const color = id => ({nc:'--c-nc',pat:'--c-nc',mu:'--c-nc',di:'--c-nc',sd:'--c-sd',marca:'--c-sd',nom:'--c-sd',lema:'--c-sd',do:'--c-sd',tit:'--c-der',reg:'--c-der',vig:'--c-der',emp:'--c-app'}[id]||'--c-app');
+const world=document.getElementById('world'), stage=document.getElementById('stage'), panel=document.getElementById('panel');
+const byId={}; D.nodes.forEach(n=>byId[n.id]=n);
+const svgNS='http://www.w3.org/2000/svg';
+const svg=document.createElementNS(svgNS,'svg'); svg.setAttribute('class','edges'); svg.setAttribute('viewBox','-2000 -2000 4000 4000');
+world.appendChild(svg);
+D.edges.forEach(([a,b,lab])=>{
+  const A=byId[a],B=byId[b];
+  const l=document.createElementNS(svgNS,'line');
+  l.setAttribute('x1',A.x);l.setAttribute('y1',A.y);l.setAttribute('x2',B.x);l.setAttribute('y2',B.y);
+  svg.appendChild(l);
+  const t=document.createElement('div'); t.className='elabel'; t.textContent=lab;
+  t.style.left=((A.x+B.x)/2)+'px'; t.style.top=((A.y+B.y)/2)+'px'; world.appendChild(t);
+});
+const els={};
+D.nodes.forEach(n=>{
+  const d=document.createElement('div'); d.className='node l'+n.lvl; d.tabIndex=0; d.setAttribute('role','button');
+  d.style.left=n.x+'px'; d.style.top=n.y+'px'; d.style.setProperty('--bc','var('+color(n.id)+')');
+  d.innerHTML='<div class="k"></div><h2></h2><p></p>';
+  d.querySelector('.k').textContent=n.k; d.querySelector('h2').textContent=n.t; d.querySelector('p').textContent=n.s;
+  d.addEventListener('click',e=>{e.stopPropagation(); go(D.path.indexOf(n.id))});
+  d.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go(D.path.indexOf(n.id))}});
+  world.appendChild(d); els[n.id]=d;
+});
+let cam={x:0,y:0,s:1}, idx=-1;
+const wide=()=>stage.clientWidth>760;
+function avail(){
+  const W=stage.clientWidth,H=stage.clientHeight; const open=!panel.hidden;
+  const pw=open&&wide()?panel.offsetWidth+32:0, ph=open&&!wide()?panel.offsetHeight+24:0;
+  return {W:W-pw,H:H-ph};
+}
+function apply(){
+  const {W,H}=avail();
+  world.style.transform=`translate(${W/2-cam.x*cam.s}px,${H/2-cam.y*cam.s}px) scale(${cam.s})`;
+}
+function overview(){
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  D.nodes.forEach(n=>{const e=els[n.id],w=e.offsetWidth/2,h=e.offsetHeight/2;x0=Math.min(x0,n.x-w);x1=Math.max(x1,n.x+w);y0=Math.min(y0,n.y-h);y1=Math.max(y1,n.y+h)});
+  const {W,H}=avail();
+  const s=Math.min((W-40)/(x1-x0),(H-120)/(y1-y0),1); cam={x:(x0+x1)/2,y:(y0+y1)/2+30/s,s}; apply();
+}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function render(n){
+  let h='<button class="close" type="button" id="cls">Cerrar</button>';
+  h+='<div class="k" style="--bc:var('+color(n.id)+')">'+esc(n.k)+'</div><h3>'+esc(n.t)+'</h3>';
+  h+='<h4>'+(n.id==='tit'?'Quién es':'Qué es')+'</h4><p>'+esc(n.que)+'</p>';
+  h+='<h4>Para qué sirve</h4><p>'+esc(n.sirve)+'</p>';
+  if(n.tabla){h+='<h4>Duración</h4><table>'+n.tabla.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>').join('')+'</table>'}
+  if(n.clave&&n.clave.length){h+='<h4>'+(n.id==='pi'?'Importancia y marco':'Claves')+'</h4><ul>'+n.clave.map(c=>'<li>'+esc(c)+'</li>').join('')+'</ul>'}
+  panel.innerHTML=h; panel.style.setProperty('--bc','var('+color(n.id)+')');
+  document.getElementById('cls').onclick=()=>{panel.hidden=true;overview();};
+}
+function go(i){
+  if(i<0){idx=-1;panel.hidden=true;Object.values(els).forEach(e=>e.classList.remove('on'));document.getElementById('count').textContent='Inicio';overview();return}
+  idx=Math.min(i,D.path.length-1); const n=byId[D.path[idx]];
+  Object.values(els).forEach(e=>e.classList.remove('on')); els[n.id].classList.add('on');
+  panel.hidden=false; render(n);
+  const e=els[n.id]; const {W,H}=avail();
+  const s=Math.max(.45,Math.min(1.5,W/(e.offsetWidth+340),H/(e.offsetHeight+260)));
+  cam={x:n.x,y:n.y,s}; apply();
+  document.getElementById('count').textContent=(idx+1)+' / '+D.path.length;
+}
+document.getElementById('next').onclick=()=>go(idx+1>=D.path.length?-1:idx+1);
+document.getElementById('prev').onclick=()=>go(idx-1);
+document.getElementById('ov').onclick=()=>go(-1);
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')go(idx+1>=D.path.length?-1:idx+1);if(e.key==='ArrowLeft')go(idx-1);if(e.key==='Escape')go(-1)});
+let drag=null;
+stage.addEventListener('pointerdown',e=>{if(e.target.closest('.node,#panel,.legend'))return;drag={x:e.clientX,y:e.clientY,cx:cam.x,cy:cam.y};world.classList.add('nodrag');stage.classList.add('drag');stage.setPointerCapture(e.pointerId)});
+stage.addEventListener('pointermove',e=>{if(!drag)return;cam.x=drag.cx-(e.clientX-drag.x)/cam.s;cam.y=drag.cy-(e.clientY-drag.y)/cam.s;apply()});
+const end=()=>{drag=null;world.classList.remove('nodrag');stage.classList.remove('drag')};
+stage.addEventListener('pointerup',end);stage.addEventListener('pointercancel',end);
+stage.addEventListener('wheel',e=>{e.preventDefault();world.classList.add('nodrag');cam.s=Math.max(.2,Math.min(2,cam.s*(e.deltaY<0?1.1:.9)));apply();clearTimeout(window._w);window._w=setTimeout(()=>world.classList.remove('nodrag'),150)},{passive:false});
+window.addEventListener('resize',()=>idx<0?overview():go(idx));
+world.classList.add('nodrag'); overview(); requestAnimationFrame(()=>world.classList.remove('nodrag'));
+</script>
+</body></html>
